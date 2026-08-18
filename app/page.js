@@ -3,18 +3,10 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useSession, signIn, signOut } from "next-auth/react";
 import { buildMonthGrid, todayYmd, monthLabel } from "@/lib/dateUtils";
+import { api } from "@/lib/apiClient";
 import DayCell from "@/components/DayCell";
 import AdminPanel from "@/components/AdminPanel";
-
-async function api(url, options) {
-  const res = await fetch(url, {
-    ...options,
-    headers: { "Content-Type": "application/json", ...(options?.headers || {}) },
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || "요청에 실패했습니다.");
-  return data;
-}
+import DayDetailModal from "@/components/DayDetailModal";
 
 const YEAR_RANGE = (() => {
   const y = new Date().getFullYear();
@@ -39,6 +31,7 @@ export default function HomePage() {
   const [shareTarget, setShareTarget] = useState("");
   const [reportText, setReportText] = useState(null);
   const [copyLabel, setCopyLabel] = useState("복사");
+  const [expandedDate, setExpandedDate] = useState(null);
 
   const selfEmail = session?.user?.email;
   const isAdmin = !!session?.user?.isAdmin;
@@ -196,7 +189,7 @@ export default function HomePage() {
     }
   }
 
-  function buildReportText() {
+  function buildReportText(notesByDate) {
     const lines = [];
     lines.push(`${monthLabel(year, month)} 업무 리포트`);
     lines.push("");
@@ -204,19 +197,32 @@ export default function HomePage() {
     lines.push(`총 업무: ${totalTasks}건`);
     lines.push(`완료율: ${percent}% (${doneTasks}/${totalTasks})`);
     lines.push("");
-    const sortedDates = Object.keys(tasksByDate).sort();
+    const allDates = new Set([...Object.keys(tasksByDate), ...Object.keys(notesByDate)]);
+    const sortedDates = Array.from(allDates).sort();
     for (const d of sortedDates) {
       const day = Number(d.slice(8, 10));
       lines.push(`${month}월 ${day}일`);
-      for (const t of tasksByDate[d]) {
+      for (const t of tasksByDate[d] || []) {
         lines.push(`  - ${t.done ? "☑" : "☐"} ${t.text}`);
+      }
+      if (notesByDate[d]) {
+        lines.push(`  📝 메모: ${notesByDate[d]}`);
       }
     }
     return lines.join("\n");
   }
 
-  function openReport() {
-    setReportText(buildReportText());
+  async function openReport() {
+    let notes = {};
+    try {
+      const res = await api(
+        `/api/day-notes?targetEmail=${encodeURIComponent(viewingEmail)}&year=${year}&month=${month}`
+      );
+      notes = res.notes || {};
+    } catch {
+      // 메모를 못 불러와도 리포트 자체는 그대로 보여준다
+    }
+    setReportText(buildReportText(notes));
     setCopyLabel("복사");
   }
 
@@ -389,12 +395,27 @@ export default function HomePage() {
                     onToggle={handleToggle}
                     onDelete={handleDelete}
                     onAdd={handleAdd}
+                    onExpand={setExpandedDate}
                   />
                 ))}
               </div>
             ))}
           </div>
         </>
+      )}
+
+      {expandedDate && (
+        <DayDetailModal
+          date={expandedDate}
+          tasks={tasksByDate[expandedDate] || []}
+          googleEvents={eventsByDate[expandedDate] || []}
+          readOnly={readOnly}
+          viewingEmail={viewingEmail}
+          onToggle={handleToggle}
+          onDelete={handleDelete}
+          onAdd={handleAdd}
+          onClose={() => setExpandedDate(null)}
+        />
       )}
 
       {reportText && (

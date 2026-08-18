@@ -11,6 +11,7 @@ export default function DayCell({
   onToggle,
   onDelete,
   onAdd,
+  onExpand,
 }) {
   const [adding, setAdding] = useState(false);
   const [text, setText] = useState("");
@@ -39,7 +40,18 @@ export default function DayCell({
         isToday ? "bg-[#EAF2FF]" : "bg-card"
       } ${!cell.inMonth ? "opacity-50" : ""}`}
     >
-      <div className={`text-xs font-semibold ${numberColor}`}>{cell.day}</div>
+      <div className="flex items-start justify-between">
+        <div className={`text-xs font-semibold ${numberColor}`}>{cell.day}</div>
+        {cell.inMonth && (
+          <button
+            onClick={() => onExpand(cell.date)}
+            title="크게 보기"
+            className="text-text-disabled hover:text-point text-xs leading-none"
+          >
+            ⤢
+          </button>
+        )}
+      </div>
 
       {cell.inMonth && (
         <div className="flex flex-col gap-1 flex-1">
@@ -52,25 +64,24 @@ export default function DayCell({
 
           {tasks.map((t) =>
             readOnly ? (
-              <div key={t.id} className="flex items-center gap-1 text-[11px] text-text-body truncate">
+              <div key={t.id} className="flex items-start gap-1 text-[11px] text-text-body">
                 <span>{t.done ? "✓" : "·"}</span>
-                <span className={`truncate ${t.done ? "line-through text-text-disabled" : ""}`}>
+                <span className={`break-words ${t.done ? "line-through text-text-disabled" : ""}`}>
                   {t.text}
                 </span>
               </div>
             ) : (
-              <div key={t.id} className="flex items-center gap-1 text-[11px] group">
+              <div key={t.id} className="flex items-start gap-1 text-[11px] group">
                 <input
                   type="checkbox"
                   checked={t.done}
                   onChange={(e) => onToggle(t.id, e.target.checked)}
-                  className="accent-point shrink-0"
+                  className="accent-point shrink-0 mt-0.5"
                 />
                 <span
-                  className={`truncate flex-1 ${
+                  className={`break-words flex-1 ${
                     t.done ? "line-through text-text-disabled" : "text-text-body"
                   }`}
-                  title={t.text}
                 >
                   {t.text}
                 </span>
