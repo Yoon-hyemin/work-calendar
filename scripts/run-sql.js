@@ -2,7 +2,7 @@
 // DATABASE_URL은 .env.local에서 읽는다 (dotenv 없이 최소 구현 -- 그 파일을 직접 파싱).
 const fs = require("fs");
 const path = require("path");
-const { neon } = require("@neondatabase/serverless");
+const { Client } = require("@neondatabase/serverless");
 
 function loadEnvLocal() {
   const envPath = path.join(__dirname, "..", ".env.local");
@@ -30,10 +30,15 @@ async function main() {
     console.error("DATABASE_URL이 없습니다. .env.local을 먼저 채워주세요.");
     process.exit(1);
   }
-  const sql = neon(process.env.DATABASE_URL);
+  const client = new Client(process.env.DATABASE_URL);
+  await client.connect();
   const text = fs.readFileSync(path.join(__dirname, "..", filePath), "utf8");
-  await sql.query(text);
-  console.log(`완료: ${filePath}`);
+  try {
+    await client.query(text);
+    console.log(`완료: ${filePath}`);
+  } finally {
+    await client.end();
+  }
 }
 
 main().catch((err) => {
