@@ -177,6 +177,23 @@ export default function HomePage() {
     }
   }
 
+  async function handleEdit(id, text, remind, time) {
+    const prevTasks = tasks;
+    setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, text } : t)));
+    try {
+      const res = await api(`/api/tasks/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ text, time, remind }),
+      });
+      setTasks((prev) => prev.map((t) => (t.id === id ? res.task : t)));
+      if (res.calendarError) alert(res.calendarError);
+      loadGoogleEvents();
+    } catch (err) {
+      alert(err.message);
+      setTasks(prevTasks);
+    }
+  }
+
   async function requestShare() {
     if (!shareTarget) return;
     try {
@@ -414,6 +431,7 @@ export default function HomePage() {
           onToggle={handleToggle}
           onDelete={handleDelete}
           onAdd={handleAdd}
+          onEdit={handleEdit}
           onClose={() => setExpandedDate(null)}
         />
       )}

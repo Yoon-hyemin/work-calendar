@@ -27,7 +27,7 @@ export async function GET(req) {
     month === 12 ? `${year + 1}-01-01` : `${year}-${String(month + 1).padStart(2, "0")}-01`;
 
   const tasks = await sql`
-    SELECT id, date::text AS date, text, done, calendar_event_id AS "calendarEventId"
+    SELECT id, date::text AS date, text, done, time, calendar_event_id AS "calendarEventId"
     FROM tasks
     WHERE email = ${targetEmail} AND date >= ${startDate} AND date < ${endDate}
     ORDER BY date, id
@@ -71,9 +71,9 @@ export async function POST(req) {
   }
 
   const rows = await sql`
-    INSERT INTO tasks (email, date, text, done, calendar_event_id)
-    VALUES (${session.user.email}, ${date}, ${text.trim()}, FALSE, ${calendarEventId})
-    RETURNING id, date::text AS date, text, done, calendar_event_id AS "calendarEventId"
+    INSERT INTO tasks (email, date, text, done, time, calendar_event_id)
+    VALUES (${session.user.email}, ${date}, ${text.trim()}, FALSE, ${time || null}, ${calendarEventId})
+    RETURNING id, date::text AS date, text, done, time, calendar_event_id AS "calendarEventId"
   `;
 
   return NextResponse.json({ task: rows[0], calendarError });

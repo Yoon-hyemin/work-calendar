@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { sortByTime } from "@/lib/dateUtils";
 
 export default function DayCell({
   cell,
@@ -22,6 +23,9 @@ export default function DayCell({
   const dow = new Date(cell.date + "T00:00:00").getDay();
   const dowColor = dow === 0 ? "text-sunday" : dow === 6 ? "text-saturday" : "text-text-strong";
   const numberColor = !cell.inMonth ? "text-text-disabled" : dowColor;
+
+  const sortedEvents = sortByTime(googleEvents || []);
+  const sortedTasks = sortByTime(tasks);
 
   async function submitAdd() {
     if (!text.trim() || saving) return;
@@ -55,17 +59,19 @@ export default function DayCell({
 
       {cell.inMonth && (
         <div className="flex flex-col gap-1 flex-1">
-          {googleEvents?.map((ev) => (
+          {sortedEvents.map((ev) => (
             <div key={ev.id} className="flex items-center gap-1 text-[11px] text-text-muted truncate">
-              <span className="text-gcal">●</span>
+              <span className="text-gcal shrink-0">●</span>
+              {ev.time && <span className="shrink-0 text-gcal font-medium">{ev.time}</span>}
               <span className="truncate">{ev.title}</span>
             </div>
           ))}
 
-          {tasks.map((t) =>
+          {sortedTasks.map((t) =>
             readOnly ? (
               <div key={t.id} className="flex items-start gap-1 text-[11px] text-text-body">
                 <span>{t.done ? "✓" : "·"}</span>
+                {t.time && <span className="shrink-0 text-text-muted">{t.time}</span>}
                 <span className={`break-words ${t.done ? "line-through text-text-disabled" : ""}`}>
                   {t.text}
                 </span>
@@ -78,6 +84,7 @@ export default function DayCell({
                   onChange={(e) => onToggle(t.id, e.target.checked)}
                   className="accent-point shrink-0 mt-0.5"
                 />
+                {t.time && <span className="shrink-0 text-text-muted mt-0.5">{t.time}</span>}
                 <span
                   className={`break-words flex-1 ${
                     t.done ? "line-through text-text-disabled" : "text-text-body"
