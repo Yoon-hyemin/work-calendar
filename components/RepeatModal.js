@@ -3,14 +3,14 @@
 import { useState } from "react";
 
 const FREQUENCIES = [
-  { value: "daily", label: "매일" },
+  { value: "daily", label: "매일(평일만)" },
   { value: "weekly", label: "매주" },
   { value: "monthly", label: "매월" },
   { value: "yearly", label: "연 1회" },
 ];
 
 const INFINITE_HINT = {
-  daily: "1년치",
+  daily: "평일 기준 1년치",
   weekly: "1년치",
   monthly: "2년치",
   yearly: "10년치",
@@ -57,6 +57,9 @@ export default function RepeatModal({ task, onSubmit, onClose }) {
               </button>
             ))}
           </div>
+          {frequency === "daily" && (
+            <p className="text-xs text-text-muted mt-1">토요일·일요일은 자동으로 제외돼요.</p>
+          )}
         </div>
 
         <div className="flex flex-col gap-2 mb-5">

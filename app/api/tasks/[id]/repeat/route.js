@@ -29,6 +29,19 @@ function nextOccurrence(anchorDate, frequency, n) {
   return addDays(anchorDate, n); // daily
 }
 
+function isWeekend(dateStr) {
+  const dow = new Date(dateStr + "T00:00:00Z").getUTCDay();
+  return dow === 0 || dow === 6;
+}
+
+// "매일" 반복은 평일(근무일) 기준으로만 -- 원본 항목 자체는 그대로 두고,
+// 새로 만들어지는 항목만 주말을 건너뛴다.
+function nextWeekday(dateStr) {
+  let d = addDays(dateStr, 1);
+  while (isWeekend(d)) d = addDays(d, 1);
+  return d;
+}
+
 // POST { frequency: 'daily'|'weekly'|'monthly'|'yearly', endDate: 'YYYY-MM-DD' | null }
 // endDate가 null이면 무한반복 -- 주기별로 정해둔 기간만큼만 미리 생성.
 export async function POST(req, { params }) {
@@ -58,18 +71,34 @@ export async function POST(req, { params }) {
   }
 
   const dates = [];
-  let n = 1;
-  let cursor = nextOccurrence(task.date, frequency, n);
-  while (cursor <= finalEndDate && dates.length < MAX_OCCURRENCES) {
-    dates.push(cursor);
-    n += 1;
-    cursor = nextOccurrence(task.date, frequency, n);
+  let hitCap = false;
+  if (frequency === "daily") {
+    let cursor = nextWeekday(task.date);
+    while (cursor <= finalEndDate) {
+      if (dates.length >= MAX_OCCURRENCES) {
+        hitCap = true;
+        break;
+      }
+      dates.push(cursor);
+      cursor = nextWeekday(cursor);
+    }
+  } else {
+    let n = 1;
+    let cursor = nextOccurrence(task.date, frequency, n);
+    while (cursor <= finalEndDate) {
+      if (dates.length >= MAX_OCCURRENCES) {
+        hitCap = true;
+        break;
+      }
+      dates.push(cursor);
+      n += 1;
+      cursor = nextOccurrence(task.date, frequency, n);
+    }
   }
 
-  let note = null;
-  if (cursor <= finalEndDate) {
-    note = `한 번에 최대 ${MAX_OCCURRENCES}개까지만 만들어져요. 그 이후에도 계속하려면 그때 다시 반복 설정해주세요.`;
-  }
+  const note = hitCap
+    ? `한 번에 최대 ${MAX_OCCURRENCES}개까지만 만들어져요. 그 이후에도 계속하려면 그때 다시 반복 설정해주세요.`
+    : null;
 
   await sql`UPDATE tasks SET recurrence_id = ${id} WHERE id = ${id}`;
 

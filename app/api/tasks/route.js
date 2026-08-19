@@ -28,7 +28,8 @@ export async function GET(req) {
 
   const tasks = await sql`
     SELECT id, date::text AS date, text, done, time,
-           calendar_event_id AS "calendarEventId", recurrence_id AS "recurrenceId"
+           calendar_event_id AS "calendarEventId", recurrence_id AS "recurrenceId",
+           order_index AS "orderIndex"
     FROM tasks
     WHERE email = ${targetEmail} AND date >= ${startDate} AND date < ${endDate}
     ORDER BY date, id
@@ -75,7 +76,8 @@ export async function POST(req) {
     INSERT INTO tasks (email, date, text, done, time, calendar_event_id)
     VALUES (${session.user.email}, ${date}, ${text.trim()}, FALSE, ${time || null}, ${calendarEventId})
     RETURNING id, date::text AS date, text, done, time,
-      calendar_event_id AS "calendarEventId", recurrence_id AS "recurrenceId"
+      calendar_event_id AS "calendarEventId", recurrence_id AS "recurrenceId",
+      order_index AS "orderIndex"
   `;
 
   return NextResponse.json({ task: rows[0], calendarError });

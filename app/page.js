@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useSession, signIn, signOut } from "next-auth/react";
-import { buildMonthGrid, todayYmd, monthLabel } from "@/lib/dateUtils";
+import { buildMonthGrid, todayYmd, monthLabel, sortByTime } from "@/lib/dateUtils";
 import { api } from "@/lib/apiClient";
 import DayCell from "@/components/DayCell";
 import AdminPanel from "@/components/AdminPanel";
@@ -228,6 +228,28 @@ export default function HomePage() {
     } catch (err) {
       alert(err.message);
       setTasks(prevTasks);
+    }
+  }
+
+  async function handleReorder(movedId, targetDate, beforeTaskId) {
+    const currentIds = sortByTime(tasksByDate[targetDate] || []).map((t) => t.id);
+    const withoutMoved = currentIds.filter((tid) => tid !== movedId);
+    const insertAt = withoutMoved.indexOf(beforeTaskId);
+    const orderedIds =
+      insertAt === -1
+        ? [...withoutMoved, movedId]
+        : [...withoutMoved.slice(0, insertAt), movedId, ...withoutMoved.slice(insertAt)];
+
+    try {
+      const res = await api("/api/tasks/reorder", {
+        method: "PATCH",
+        body: JSON.stringify({ movedTaskId: movedId, targetDate, orderedIds }),
+      });
+      if (res.calendarError) alert(res.calendarError);
+      loadTasks();
+      loadGoogleEvents();
+    } catch (err) {
+      alert(err.message);
     }
   }
 
@@ -478,6 +500,7 @@ export default function HomePage() {
                     onAdd={handleAdd}
                     onExpand={setExpandedDate}
                     onMove={handleMove}
+                    onReorder={handleReorder}
                     onContextMenu={openContextMenu}
                   />
                 ))}

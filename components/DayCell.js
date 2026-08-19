@@ -14,6 +14,7 @@ export default function DayCell({
   onAdd,
   onExpand,
   onMove,
+  onReorder,
   onContextMenu,
 }) {
   const [adding, setAdding] = useState(false);
@@ -118,6 +119,18 @@ export default function DayCell({
                 onContextMenu={(e) => {
                   e.preventDefault();
                   onContextMenu(e, t);
+                }}
+                onDragOver={(e) => {
+                  if (!canDrop) return;
+                  e.preventDefault();
+                }}
+                onDrop={(e) => {
+                  if (!canDrop) return;
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setDragOver(false);
+                  const movedId = Number(e.dataTransfer.getData("text/plain"));
+                  if (movedId && movedId !== t.id) onReorder(movedId, cell.date, t.id);
                 }}
                 className="flex items-start gap-1 text-[11px] group cursor-grab active:cursor-grabbing select-none"
               >

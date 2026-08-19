@@ -5,7 +5,7 @@ import { createEventWithReminder, deleteEvent } from "@/lib/googleCalendar";
 
 async function loadOwnedTask(id, email) {
   const rows = await sql`
-    SELECT id, date::text AS date, text, done, time, calendar_event_id, recurrence_id
+    SELECT id, date::text AS date, text, done, time, calendar_event_id, recurrence_id, order_index
     FROM tasks WHERE id = ${id} AND email = ${email}
   `;
   return rows[0] || null;
@@ -78,7 +78,8 @@ export async function PATCH(req, { params }) {
       SET text = ${newText}, time = ${newTime}, calendar_event_id = ${calendarEventId}
       WHERE id = ${id}
       RETURNING id, date::text AS date, text, done, time,
-        calendar_event_id AS "calendarEventId", recurrence_id AS "recurrenceId"
+        calendar_event_id AS "calendarEventId", recurrence_id AS "recurrenceId",
+        order_index AS "orderIndex"
     `;
     return NextResponse.json({ task: rows[0], calendarError });
   }
@@ -97,6 +98,7 @@ export async function PATCH(req, { params }) {
           time: task.time,
           calendarEventId: task.calendar_event_id,
           recurrenceId: task.recurrence_id,
+          orderIndex: task.order_index,
         },
         calendarError: null,
       });
@@ -139,7 +141,8 @@ export async function PATCH(req, { params }) {
       SET date = ${newDate}, calendar_event_id = ${calendarEventId}
       WHERE id = ${id}
       RETURNING id, date::text AS date, text, done, time,
-        calendar_event_id AS "calendarEventId", recurrence_id AS "recurrenceId"
+        calendar_event_id AS "calendarEventId", recurrence_id AS "recurrenceId",
+        order_index AS "orderIndex"
     `;
     return NextResponse.json({ task: rows[0], calendarError });
   }
