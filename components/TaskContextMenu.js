@@ -19,7 +19,7 @@ export default function TaskContextMenu({ x, y, onRepeat, onClose }) {
           onClick={onRepeat}
           className="block w-full text-left px-4 py-2 hover:bg-bg text-text-body"
         >
-          🔁 매일 반복 설정
+          🔁 반복 설정
         </button>
       </div>
     </>

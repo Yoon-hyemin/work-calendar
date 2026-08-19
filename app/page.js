@@ -244,11 +244,11 @@ export default function HomePage() {
     setContextMenu(null);
   }
 
-  async function handleCreateRepeat(endDate) {
+  async function handleCreateRepeat(frequency, endDate) {
     try {
       const res = await api(`/api/tasks/${repeatTarget.id}/repeat`, {
         method: "POST",
-        body: JSON.stringify({ endDate }),
+        body: JSON.stringify({ frequency, endDate }),
       });
       if (res.note) alert(res.note);
       setRepeatTarget(null);
