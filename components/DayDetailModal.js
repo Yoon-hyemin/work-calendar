@@ -14,6 +14,7 @@ export default function DayDetailModal({
   onDelete,
   onAdd,
   onEdit,
+  onContextMenu,
   onClose,
 }) {
   const [memo, setMemo] = useState("");
@@ -174,7 +175,14 @@ export default function DayDetailModal({
                 </span>
               </div>
             ) : (
-              <div key={t.id} className="flex items-start gap-2 text-sm group">
+              <div
+                key={t.id}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  onContextMenu(e, t);
+                }}
+                className="flex items-start gap-2 text-sm group"
+              >
                 <input
                   type="checkbox"
                   checked={t.done}

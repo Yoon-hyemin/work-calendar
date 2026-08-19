@@ -14,6 +14,7 @@ export default function DayCell({
   onAdd,
   onExpand,
   onMove,
+  onContextMenu,
 }) {
   const [adding, setAdding] = useState(false);
   const [text, setText] = useState("");
@@ -113,6 +114,10 @@ export default function DayCell({
                 onDragStart={(e) => {
                   e.dataTransfer.effectAllowed = "move";
                   e.dataTransfer.setData("text/plain", String(t.id));
+                }}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  onContextMenu(e, t);
                 }}
                 className="flex items-start gap-1 text-[11px] group cursor-grab active:cursor-grabbing select-none"
               >

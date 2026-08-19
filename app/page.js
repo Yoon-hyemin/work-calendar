@@ -7,6 +7,8 @@ import { api } from "@/lib/apiClient";
 import DayCell from "@/components/DayCell";
 import AdminPanel from "@/components/AdminPanel";
 import DayDetailModal from "@/components/DayDetailModal";
+import TaskContextMenu from "@/components/TaskContextMenu";
+import RepeatModal from "@/components/RepeatModal";
 
 const YEAR_RANGE = (() => {
   const y = new Date().getFullYear();
@@ -32,6 +34,8 @@ export default function HomePage() {
   const [reportText, setReportText] = useState(null);
   const [copyLabel, setCopyLabel] = useState("복사");
   const [expandedDate, setExpandedDate] = useState(null);
+  const [contextMenu, setContextMenu] = useState(null);
+  const [repeatTarget, setRepeatTarget] = useState(null);
 
   const selfEmail = session?.user?.email;
   const isAdmin = !!session?.user?.isAdmin;
@@ -149,6 +153,20 @@ export default function HomePage() {
   }
 
   async function handleDelete(id) {
+    const target = tasks.find((t) => t.id === id);
+    if (target?.recurrenceId) {
+      const ok = confirm("이 항목과 이후 반복된 일정이 모두 삭제됩니다. 계속할까요?");
+      if (!ok) return;
+      try {
+        const res = await api(`/api/tasks/${id}`, { method: "DELETE" });
+        if (res.calendarError) alert(res.calendarError);
+        loadTasks();
+      } catch (err) {
+        alert(err.message);
+      }
+      return;
+    }
+
     const prevTasks = tasks;
     setTasks((prev) => prev.filter((t) => t.id !== id));
     try {
@@ -210,6 +228,33 @@ export default function HomePage() {
     } catch (err) {
       alert(err.message);
       setTasks(prevTasks);
+    }
+  }
+
+  function openContextMenu(e, task) {
+    setContextMenu({ x: e.clientX, y: e.clientY, task });
+  }
+
+  function closeContextMenu() {
+    setContextMenu(null);
+  }
+
+  function openRepeatModal() {
+    setRepeatTarget(contextMenu.task);
+    setContextMenu(null);
+  }
+
+  async function handleCreateRepeat(endDate) {
+    try {
+      const res = await api(`/api/tasks/${repeatTarget.id}/repeat`, {
+        method: "POST",
+        body: JSON.stringify({ endDate }),
+      });
+      if (res.note) alert(res.note);
+      setRepeatTarget(null);
+      loadTasks();
+    } catch (err) {
+      alert(err.message);
     }
   }
 
@@ -433,6 +478,7 @@ export default function HomePage() {
                     onAdd={handleAdd}
                     onExpand={setExpandedDate}
                     onMove={handleMove}
+                    onContextMenu={openContextMenu}
                   />
                 ))}
               </div>
@@ -452,7 +498,25 @@ export default function HomePage() {
           onDelete={handleDelete}
           onAdd={handleAdd}
           onEdit={handleEdit}
+          onContextMenu={openContextMenu}
           onClose={() => setExpandedDate(null)}
+        />
+      )}
+
+      {contextMenu && (
+        <TaskContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          onRepeat={openRepeatModal}
+          onClose={closeContextMenu}
+        />
+      )}
+
+      {repeatTarget && (
+        <RepeatModal
+          task={repeatTarget}
+          onSubmit={handleCreateRepeat}
+          onClose={() => setRepeatTarget(null)}
         />
       )}
 
