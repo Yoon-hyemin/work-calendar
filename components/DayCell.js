@@ -24,10 +24,14 @@ export default function DayCell({
 
   const canDrop = cell.inMonth && !readOnly;
 
-  function handleDragOver(e) {
+  function handleDragEnter(e) {
     if (!canDrop) return;
     e.preventDefault();
     setDragOver(true);
+  }
+  function handleDragOver(e) {
+    if (!canDrop) return;
+    e.preventDefault();
   }
   function handleDragLeave() {
     setDragOver(false);
@@ -60,6 +64,7 @@ export default function DayCell({
 
   return (
     <div
+      onDragEnter={handleDragEnter}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
@@ -105,8 +110,11 @@ export default function DayCell({
               <div
                 key={t.id}
                 draggable
-                onDragStart={(e) => e.dataTransfer.setData("text/plain", String(t.id))}
-                className="flex items-start gap-1 text-[11px] group cursor-grab active:cursor-grabbing"
+                onDragStart={(e) => {
+                  e.dataTransfer.effectAllowed = "move";
+                  e.dataTransfer.setData("text/plain", String(t.id));
+                }}
+                className="flex items-start gap-1 text-[11px] group cursor-grab active:cursor-grabbing select-none"
               >
                 <input
                   type="checkbox"
