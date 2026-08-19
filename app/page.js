@@ -194,6 +194,25 @@ export default function HomePage() {
     }
   }
 
+  async function handleMove(id, newDate) {
+    const prevTasks = tasks;
+    const moved = tasks.find((t) => t.id === id);
+    if (!moved || moved.date === newDate) return;
+    setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, date: newDate } : t)));
+    try {
+      const res = await api(`/api/tasks/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ date: newDate }),
+      });
+      setTasks((prev) => prev.map((t) => (t.id === id ? res.task : t)));
+      if (res.calendarError) alert(res.calendarError);
+      loadGoogleEvents();
+    } catch (err) {
+      alert(err.message);
+      setTasks(prevTasks);
+    }
+  }
+
   async function requestShare() {
     if (!shareTarget) return;
     try {
@@ -413,6 +432,7 @@ export default function HomePage() {
                     onDelete={handleDelete}
                     onAdd={handleAdd}
                     onExpand={setExpandedDate}
+                    onMove={handleMove}
                   />
                 ))}
               </div>

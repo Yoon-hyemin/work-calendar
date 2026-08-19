@@ -13,12 +13,32 @@ export default function DayCell({
   onDelete,
   onAdd,
   onExpand,
+  onMove,
 }) {
   const [adding, setAdding] = useState(false);
   const [text, setText] = useState("");
   const [remind, setRemind] = useState(false);
   const [time, setTime] = useState("");
   const [saving, setSaving] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+
+  const canDrop = cell.inMonth && !readOnly;
+
+  function handleDragOver(e) {
+    if (!canDrop) return;
+    e.preventDefault();
+    setDragOver(true);
+  }
+  function handleDragLeave() {
+    setDragOver(false);
+  }
+  function handleDrop(e) {
+    if (!canDrop) return;
+    e.preventDefault();
+    setDragOver(false);
+    const id = Number(e.dataTransfer.getData("text/plain"));
+    if (id) onMove(id, cell.date);
+  }
 
   const dow = new Date(cell.date + "T00:00:00").getDay();
   const dowColor = dow === 0 ? "text-sunday" : dow === 6 ? "text-saturday" : "text-text-strong";
@@ -40,9 +60,14 @@ export default function DayCell({
 
   return (
     <div
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
       className={`min-h-[110px] rounded-card p-2 flex flex-col gap-1 ${
         isToday ? "bg-[#EAF2FF]" : "bg-card"
-      } ${!cell.inMonth ? "opacity-50" : ""}`}
+      } ${!cell.inMonth ? "opacity-50" : ""} ${
+        dragOver ? "ring-2 ring-point" : ""
+      }`}
     >
       <div className="flex items-start justify-between">
         <div className={`text-xs font-semibold ${numberColor}`}>{cell.day}</div>
@@ -77,7 +102,12 @@ export default function DayCell({
                 </span>
               </div>
             ) : (
-              <div key={t.id} className="flex items-start gap-1 text-[11px] group">
+              <div
+                key={t.id}
+                draggable
+                onDragStart={(e) => e.dataTransfer.setData("text/plain", String(t.id))}
+                className="flex items-start gap-1 text-[11px] group cursor-grab active:cursor-grabbing"
+              >
                 <input
                   type="checkbox"
                   checked={t.done}

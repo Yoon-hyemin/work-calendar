@@ -13,7 +13,8 @@ async function loadOwnedTask(id, email) {
 
 // PATCH { done }               -- 체크 토글
 // PATCH { text, time, remind } -- 내용 수정 (필요시 구글 캘린더 일정 재생성)
-// 둘 다 본인 것만.
+// PATCH { date }               -- 다른 날짜로 이동(드래그 마이그레이션), 일정 있으면 새 날짜로 재생성
+// 전부 본인 것만.
 export async function PATCH(req, { params }) {
   const session = await requireSession();
   if (!session) return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
@@ -75,6 +76,58 @@ export async function PATCH(req, { params }) {
     const rows = await sql`
       UPDATE tasks
       SET text = ${newText}, time = ${newTime}, calendar_event_id = ${calendarEventId}
+      WHERE id = ${id}
+      RETURNING id, date::text AS date, text, done, time, calendar_event_id AS "calendarEventId"
+    `;
+    return NextResponse.json({ task: rows[0], calendarError });
+  }
+
+  if (Object.prototype.hasOwnProperty.call(body, "date")) {
+    const newDate = body.date;
+    if (!newDate) return NextResponse.json({ error: "날짜가 필요합니다." }, { status: 400 });
+
+    if (newDate === task.date) {
+      return NextResponse.json({
+        task: { id: task.id, date: task.date, text: task.text, done: task.done, time: task.time, calendarEventId: task.calendar_event_id },
+        calendarError: null,
+      });
+    }
+
+    let calendarEventId = task.calendar_event_id;
+    let calendarError = null;
+
+    // 연결된 구글 캘린더 일정이 있으면 옛 날짜 일정은 지우고 새 날짜로 다시 만든다.
+    if (calendarEventId) {
+      if (!session.accessToken) {
+        calendarError = "구글 로그인 정보가 없어 캘린더 일정은 직접 옮겨야 합니다.";
+      } else {
+        try {
+          await deleteEvent(session.accessToken, calendarEventId);
+        } catch (err) {
+          console.error("구글 캘린더 일정 삭제 실패:", err);
+          calendarError = `기존 구글 캘린더 일정 삭제에 실패했습니다: ${err?.message || "알 수 없는 오류"}`;
+        }
+        calendarEventId = null;
+
+        try {
+          calendarEventId = await createEventWithReminder({
+            accessToken: session.accessToken,
+            text: task.text,
+            date: newDate,
+            time: task.time,
+          });
+        } catch (err) {
+          console.error("구글 캘린더 등록 실패:", err);
+          calendarError =
+            (calendarError ? calendarError + " " : "") +
+            `새 날짜로 캘린더 일정을 다시 만들지 못했습니다: ${err?.message || "알 수 없는 오류"}`;
+        }
+      }
+    }
+
+    const rows = await sql`
+      UPDATE tasks
+      SET date = ${newDate}, calendar_event_id = ${calendarEventId}
       WHERE id = ${id}
       RETURNING id, date::text AS date, text, done, time, calendar_event_id AS "calendarEventId"
     `;
