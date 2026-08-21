@@ -7,6 +7,7 @@ export default function DayCell({
   cell,
   tasks,
   googleEvents,
+  memo,
   isToday,
   readOnly,
   onToggle,
@@ -23,6 +24,7 @@ export default function DayCell({
   const [time, setTime] = useState("");
   const [saving, setSaving] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [showMemo, setShowMemo] = useState(false);
 
   const canDrop = cell.inMonth && !readOnly;
 
@@ -76,8 +78,17 @@ export default function DayCell({
         dragOver ? "ring-2 ring-point" : ""
       }`}
     >
-      <div className="flex items-start justify-between">
-        <div className={`text-xs font-semibold ${numberColor}`}>{cell.day}</div>
+      <div className="flex items-start justify-between relative">
+        <div className="flex items-center gap-1">
+          <span className={`text-xs font-semibold ${numberColor}`}>{cell.day}</span>
+          {memo && (
+            <span
+              onMouseEnter={() => setShowMemo(true)}
+              onMouseLeave={() => setShowMemo(false)}
+              className="w-1.5 h-1.5 rounded-full bg-text-disabled inline-block"
+            />
+          )}
+        </div>
         {cell.inMonth && (
           <button
             onClick={() => onExpand(cell.date)}
@@ -86,6 +97,11 @@ export default function DayCell({
           >
             ⤢
           </button>
+        )}
+        {showMemo && memo && (
+          <div className="absolute top-full left-0 mt-1 z-50 w-48 max-w-[80vw] bg-card border border-border rounded-lg shadow-card p-2.5 text-[11px] text-text-body whitespace-pre-wrap break-words">
+            📝 {memo}
+          </div>
         )}
       </div>
 

@@ -15,6 +15,7 @@ export default function DayDetailModal({
   onAdd,
   onEdit,
   onContextMenu,
+  onMemoSaved,
   onClose,
 }) {
   const [memo, setMemo] = useState("");
@@ -57,6 +58,7 @@ export default function DayDetailModal({
     try {
       await api("/api/day-notes", { method: "PUT", body: JSON.stringify({ date, memo }) });
       setSavedMemo(memo);
+      onMemoSaved?.();
     } catch (err) {
       alert(err.message);
     } finally {

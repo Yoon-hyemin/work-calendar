@@ -36,6 +36,7 @@ export default function HomePage() {
   const [expandedDate, setExpandedDate] = useState(null);
   const [contextMenu, setContextMenu] = useState(null);
   const [repeatTarget, setRepeatTarget] = useState(null);
+  const [notesByDate, setNotesByDate] = useState({});
 
   const selfEmail = session?.user?.email;
   const isAdmin = !!session?.user?.isAdmin;
@@ -81,12 +82,25 @@ export default function HomePage() {
     }
   }, [session, loadMembers, loadDirectoryAndShares]);
 
+  const loadDayNotes = useCallback(async () => {
+    if (!viewingEmail) return;
+    try {
+      const res = await api(
+        `/api/day-notes?targetEmail=${encodeURIComponent(viewingEmail)}&year=${year}&month=${month}`
+      );
+      setNotesByDate(res.notes || {});
+    } catch {
+      setNotesByDate({});
+    }
+  }, [viewingEmail, year, month]);
+
   useEffect(() => {
     if (session) {
       loadTasks();
       loadGoogleEvents();
+      loadDayNotes();
     }
-  }, [session, loadTasks, loadGoogleEvents]);
+  }, [session, loadTasks, loadGoogleEvents, loadDayNotes]);
 
   if (status === "loading") {
     return <div className="min-h-screen flex items-center justify-center text-text-muted">불러오는 중...</div>;
@@ -493,6 +507,7 @@ export default function HomePage() {
                     cell={cell}
                     tasks={tasksByDate[cell.date] || []}
                     googleEvents={eventsByDate[cell.date] || []}
+                    memo={notesByDate[cell.date] || ""}
                     isToday={cell.date === today}
                     readOnly={readOnly}
                     onToggle={handleToggle}
@@ -522,6 +537,7 @@ export default function HomePage() {
           onAdd={handleAdd}
           onEdit={handleEdit}
           onContextMenu={openContextMenu}
+          onMemoSaved={loadDayNotes}
           onClose={() => setExpandedDate(null)}
         />
       )}
